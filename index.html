@@ -1,0 +1,1493 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCAN - Health, Safety & Environment (HSE) Enterprise Engine</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            900: '#064e3b',
+                            950: '#022c22'
+                        },
+                        darkbg: '#090d16',
+                        cardbg: '#111827'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .font-mono-code {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .glass-card {
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .dark .glass-card {
+            background: rgba(17, 24, 39, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .light .glass-card {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+        }
+        .matrix-cell {
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
+        }
+        .matrix-cell:hover {
+            transform: scale(1.08);
+            z-index: 20;
+            box-shadow: 0 0 15px rgba(0,0,0,0.4);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(16, 185, 129, 0.3);
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(16, 185, 129, 0.6);
+        }
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { background: white !important; color: black !important; }
+            .glass-card { background: white !important; border: 1px solid #ccc !important; color: black !important; box-shadow: none !important; }
+        }
+    </style>
+</head>
+<body class="bg-darkbg text-slate-100 min-h-screen flex flex-col antialiased selection:bg-brand-500 selection:text-slate-950 custom-scrollbar">
+
+    <header class="sticky top-0 z-40 glass-card border-b border-slate-800/80 px-4 lg:px-8 py-3.5 flex items-center justify-between no-print">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-teal-700 flex items-center justify-center text-slate-950 font-black text-xl shadow-lg shadow-brand-950/50">
+                <i class="fa-solid fa-shield-cat"></i>
+            </div>
+            <div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-lg font-extrabold tracking-tight">GCAN</span>
+                    <span class="px-2 py-0.5 text-[10px] font-bold tracking-wider rounded-md bg-brand-500/20 text-brand-400 border border-brand-500/30 uppercase">HSE Engine v3.2</span>
+                </div>
+                <p class="text-xs text-slate-400 hidden sm:block">Global Climate Action Network • Enterprise Safety & Environmental Intelligence</p>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <nav class="hidden md:flex items-center space-x-1 bg-slate-950/80 p-1.5 rounded-xl border border-slate-800">
+            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-tab px-3.5 py-2 rounded-lg text-xs font-semibold bg-brand-600 text-white transition flex items-center gap-2">
+                <i class="fa-solid fa-chart-line"></i> Dashboard
+            </button>
+            <button onclick="switchTab('incidents')" id="nav-incidents" class="nav-tab px-3.5 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-2">
+                <i class="fa-solid fa-triangle-exclamation"></i> Hazards & Incidents
+            </button>
+            <button onclick="switchTab('risk-calc')" id="nav-risk-calc" class="nav-tab px-3.5 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-2">
+                <i class="fa-solid fa-calculator"></i> Risk Matrix & Controls
+            </button>
+            <button onclick="switchTab('audits')" id="nav-audits" class="nav-tab px-3.5 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-2">
+                <i class="fa-solid fa-list-check"></i> Audit Checklists
+            </button>
+            <button onclick="switchTab('telemetry')" id="nav-telemetry" class="nav-tab px-3.5 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-2">
+                <i class="fa-solid fa-tower-broadcast"></i> Live Telemetry
+            </button>
+        </nav>
+
+        <!-- Quick Action Toolbar -->
+        <div class="flex items-center space-x-2">
+            <button onclick="toggleTheme()" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition text-xs" title="Toggle Theme">
+                <i class="fa-solid fa-moon" id="themeIcon"></i>
+            </button>
+            <button onclick="exportToCSV()" class="p-2 bg-slate-800 hover:bg-slate-700 text-brand-400 border border-brand-500/30 rounded-lg transition text-xs flex items-center gap-1.5" title="Export CSV Data">
+                <i class="fa-solid fa-file-csv"></i>
+                <span class="hidden sm:inline font-bold">Export CSV</span>
+            </button>
+            <button onclick="openModal('newIncidentModal')" class="px-3.5 py-2 text-xs font-bold bg-brand-500 hover:bg-brand-400 text-slate-950 rounded-lg shadow-lg shadow-brand-950/40 transition flex items-center gap-1.5">
+                <i class="fa-solid fa-plus-circle"></i>
+                <span class="hidden sm:inline">Report Hazard</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Mobile Navigation Drawer -->
+    <div class="md:hidden glass-card border-b border-slate-800 p-2 flex overflow-x-auto space-x-2 text-xs custom-scrollbar no-print">
+        <button onclick="switchTab('dashboard')" class="px-3 py-1.5 rounded bg-brand-600 text-white whitespace-nowrap">Dashboard</button>
+        <button onclick="switchTab('incidents')" class="px-3 py-1.5 rounded bg-slate-900 text-slate-400 whitespace-nowrap">Hazards & Incidents</button>
+        <button onclick="switchTab('risk-calc')" class="px-3 py-1.5 rounded bg-slate-900 text-slate-400 whitespace-nowrap">Risk Calculator</button>
+        <button onclick="switchTab('audits')" class="px-3 py-1.5 rounded bg-slate-900 text-slate-400 whitespace-nowrap">Audits Checklist</button>
+        <button onclick="switchTab('telemetry')" class="px-3 py-1.5 rounded bg-slate-900 text-slate-400 whitespace-nowrap">Telemetry</button>
+    </div>
+
+    <!-- Toast Notification Overlay -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 space-y-2 pointer-events-none"></div>
+
+    <main class="flex-1 p-4 lg:p-6 max-w-[1800px] mx-auto w-full space-y-6">
+
+        <!-- ================= VIEW 1: EXECUTIVE DASHBOARD ================= -->
+        <div id="view-dashboard" class="tab-view space-y-6">
+            
+            <!-- KPI Summary Cards Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                <div class="glass-card p-4 rounded-2xl relative overflow-hidden">
+                    <div class="flex justify-between items-start text-slate-400 text-xs font-semibold">
+                        <span>Active Field Sites</span>
+                        <div class="w-8 h-8 rounded-xl bg-brand-500/10 text-brand-400 flex items-center justify-center">
+                            <i class="fa-solid fa-building-user"></i>
+                        </div>
+                    </div>
+                    <div class="text-2xl lg:text-3xl font-extrabold mt-2 text-white" id="kpiSitesCount">8</div>
+                    <div class="text-[11px] text-brand-400 mt-1 flex items-center gap-1 font-medium">
+                        <i class="fa-solid fa-location-dot"></i> Dar, Mtwara, Tanga, Dodoma
+                    </div>
+                </div>
+
+                <div class="glass-card p-4 rounded-2xl relative overflow-hidden">
+                    <div class="flex justify-between items-start text-slate-400 text-xs font-semibold">
+                        <span>Open Incidents / CAPA</span>
+                        <div class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </div>
+                    </div>
+                    <div class="text-2xl lg:text-3xl font-extrabold mt-2 text-amber-400" id="kpiOpenIncidents">0</div>
+                    <div class="text-[11px] text-slate-400 mt-1">Pending supervisor sign-off</div>
+                </div>
+
+                <div class="glass-card p-4 rounded-2xl relative overflow-hidden">
+                    <div class="flex justify-between items-start text-slate-400 text-xs font-semibold">
+                        <span>Statutory Compliance</span>
+                        <div class="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center">
+                            <i class="fa-solid fa-file-contract"></i>
+                        </div>
+                    </div>
+                    <div class="text-2xl lg:text-3xl font-extrabold mt-2 text-brand-400" id="kpiComplianceRate">97.4%</div>
+                    <div class="text-[11px] text-teal-400 mt-1 flex items-center gap-1 font-medium">
+                        <i class="fa-solid fa-circle-check"></i> OSHA & NEMC Compliant
+                    </div>
+                </div>
+
+                <div class="glass-card p-4 rounded-2xl relative overflow-hidden">
+                    <div class="flex justify-between items-start text-slate-400 text-xs font-semibold">
+                        <span>LTIFR Safety Benchmark</span>
+                        <div class="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center">
+                            <i class="fa-solid fa-user-shield"></i>
+                        </div>
+                    </div>
+                    <div class="text-2xl lg:text-3xl font-extrabold mt-2 text-white">0.08</div>
+                    <div class="text-[11px] text-slate-400 mt-1">Per 1 Million Work Hours</div>
+                </div>
+
+                <div class="glass-card p-4 rounded-2xl relative overflow-hidden col-span-2 sm:col-span-1">
+                    <div class="flex justify-between items-start text-slate-400 text-xs font-semibold">
+                        <span>High Risk Permits</span>
+                        <div class="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center">
+                            <i class="fa-solid fa-fire-burner"></i>
+                        </div>
+                    </div>
+                    <div class="text-2xl lg:text-3xl font-extrabold mt-2 text-rose-400">4 Active</div>
+                    <div class="text-[11px] text-rose-300 mt-1">Hot Work & Confined Space</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- 5x5 Dynamic Risk Heatmap Grid (7 Cols) -->
+                <div class="lg:col-span-7 glass-card rounded-2xl p-5 border border-slate-800">
+                    <div class="flex flex-wrap justify-between items-center gap-2 mb-4 border-b border-slate-800 pb-3">
+                        <div>
+                            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-table-cells text-brand-400"></i>
+                                5x5 Dynamic Risk Assessment Matrix
+                            </h3>
+                            <p class="text-xs text-slate-400">Click any matrix score cell to isolate corresponding field hazard logs</p>
+                        </div>
+                        <button onclick="resetMatrixFilter()" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-xs text-brand-400 rounded-lg border border-slate-700 transition">
+                            <i class="fa-solid fa-arrow-rotate-left mr-1"></i> Clear Filter
+                        </button>
+                    </div>
+
+                    <div class="flex flex-col items-center">
+                        <div class="text-center font-bold text-[11px] text-slate-400 uppercase tracking-widest mb-2">SEVERITY / CONSEQUENCE (1 - 5)</div>
+                        
+                        <div class="flex items-center w-full">
+                            <div class="text-center font-bold text-[11px] text-slate-400 uppercase tracking-widest -rotate-90 -ml-10 w-12 shrink-0">
+                                LIKELIHOOD
+                            </div>
+
+                            <div class="grid grid-cols-5 gap-2 w-full aspect-square max-w-[460px]" id="dashboardMatrixGrid">
+                                <!-- Generated by JavaScript -->
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap justify-center gap-4 mt-4 text-xs font-semibold">
+                            <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-emerald-600"></span> Low (1-4)</div>
+                            <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-amber-500"></span> Medium (5-9)</div>
+                            <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-orange-600"></span> High (10-15)</div>
+                            <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-rose-600"></span> Critical (16-25)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dynamic Chart Analytics (5 Cols) -->
+                <div class="lg:col-span-5 space-y-6 flex flex-col justify-between">
+                    <div class="glass-card rounded-2xl p-5 border border-slate-800 flex-1">
+                        <h3 class="text-sm font-bold text-white flex items-center justify-between mb-3">
+                            <span class="flex items-center gap-2">
+                                <i class="fa-solid fa-chart-area text-brand-400"></i>
+                                HSE Incident Trends & Near Misses
+                            </span>
+                            <span class="text-[10px] text-slate-400 bg-slate-900 border border-slate-800 px-2 py-0.5 rounded">2026 YTD</span>
+                        </h3>
+                        <div class="h-44 w-full">
+                            <canvas id="dashboardTrendChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="glass-card rounded-2xl p-5 border border-slate-800 flex-1">
+                        <h3 class="text-sm font-bold text-white flex items-center gap-2 mb-3">
+                            <i class="fa-solid fa-chart-pie text-brand-400"></i>
+                            Incidents by Standard Category
+                        </h3>
+                        <div class="h-44 w-full flex items-center justify-center">
+                            <canvas id="dashboardCategoryChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Log Summary Table -->
+            <div class="glass-card rounded-2xl p-5 border border-slate-800">
+                <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+                    <div>
+                        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-clock-rotate-left text-brand-400"></i>
+                            Recent Field Incident & Hazard Reports
+                        </h3>
+                        <p class="text-xs text-slate-400">Active observations requiring site supervisor verification or CAPA closure</p>
+                    </div>
+                    <button onclick="switchTab('incidents')" class="text-xs text-brand-400 hover:text-brand-300 font-semibold flex items-center gap-1">
+                        View Full Register <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-950 text-slate-400 uppercase tracking-wider text-[10px] border-b border-slate-800">
+                            <tr>
+                                <th class="p-3">Ref ID</th>
+                                <th class="p-3">Title & Site</th>
+                                <th class="p-3">Category</th>
+                                <th class="p-3">Reporter</th>
+                                <th class="p-3">Risk Rating</th>
+                                <th class="p-3">Status</th>
+                                <th class="p-3 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dashboardRecentTable" class="divide-y divide-slate-800/60 font-medium text-slate-300">
+                            <!-- Injected by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ================= VIEW 2: HAZARDS & INCIDENT REPORTING ================= -->
+        <div id="view-incidents" class="tab-view hidden space-y-6">
+            <div class="glass-card rounded-2xl p-6 border border-slate-800 space-y-6">
+                
+                <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                    <div>
+                        <h3 class="text-base font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-clipboard-list text-brand-400"></i>
+                            Field Hazard Register & CAPA Tracking Portal
+                        </h3>
+                        <p class="text-xs text-slate-400">Manage root cause analysis, immediate corrective actions, and systemic preventions</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <button onclick="openModal('newIncidentModal')" class="px-3.5 py-2 text-xs font-bold bg-brand-500 hover:bg-brand-400 text-slate-950 rounded-lg shadow-lg shadow-brand-950/40 transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-plus-circle"></i> Log New Hazard Incident
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filters Toolbar -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                    <div class="relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-500"></i>
+                        <input type="text" id="incidentSearchInput" onkeyup="filterIncidents()" placeholder="Search title, site, reporter..." class="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-2 text-white focus:outline-none focus:border-brand-500">
+                    </div>
+                    <div>
+                        <select id="incidentCategoryFilter" onchange="filterIncidents()" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500">
+                            <option value="">All Categories</option>
+                            <option value="Thermal Stress">Thermal Stress / WBGT</option>
+                            <option value="Chemical Safety">Chemical & Waste Safety</option>
+                            <option value="Dust / Air Emissions">Dust & Air Emissions</option>
+                            <option value="Work at Height">Work at Height / Scaffolding</option>
+                            <option value="Electrical Safety">Electrical Safety</option>
+                        </select>
+                    </div>
+                    <div>
+                        <select id="incidentStatusFilter" onchange="filterIncidents()" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500">
+                            <option value="">All Statuses</option>
+                            <option value="Open">Open</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Closed">Closed</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button onclick="resetIncidentFilters()" class="w-full bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg px-3 py-2 text-slate-300 font-medium transition">
+                            <i class="fa-solid fa-xmark mr-1"></i> Clear Search Filters
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Full Register Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-950 text-slate-400 uppercase tracking-wider text-[10px] border-b border-slate-800">
+                            <tr>
+                                <th class="p-3">Ref ID</th>
+                                <th class="p-3">Title & Site</th>
+                                <th class="p-3">Reporter & Date</th>
+                                <th class="p-3">Category</th>
+                                <th class="p-3">Matrix Score</th>
+                                <th class="p-3">Status</th>
+                                <th class="p-3 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="incidentLogTableBody" class="divide-y divide-slate-800/60 font-medium text-slate-300">
+                            <!-- Injected by JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ================= VIEW 3: RISK MATRIX & HIERARCHY OF CONTROLS ================= -->
+        <div id="view-risk-calc" class="tab-view hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                <!-- Interactive Controls Calculator (5 Cols) -->
+                <div class="lg:col-span-5 glass-card rounded-2xl p-6 border border-slate-800 space-y-4">
+                    <div class="border-b border-slate-800 pb-3">
+                        <h3 class="text-base font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-calculator text-brand-400"></i>
+                            Hierarchy of Controls Calculator
+                        </h3>
+                        <p class="text-xs text-slate-400">Calculate initial baseline score, select mitigation, and derive residual risk</p>
+                    </div>
+
+                    <form id="riskCalcForm" onsubmit="handleRiskCalcSubmit(event)" class="space-y-4 text-xs">
+                        <div>
+                            <label class="block text-slate-300 mb-1 font-medium">Operation / Hazard Activity Description</label>
+                            <input type="text" id="calcHazardName" required placeholder="e.g. Unvented chemical barrel cleaning process" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-brand-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-slate-300 mb-1 font-medium">Site Facility</label>
+                            <select id="calcSite" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-brand-500">
+                                <option value="Mtwara Coastal Facility">Mtwara Coastal Facility</option>
+                                <option value="Kimara Logistics Depot">Kimara Logistics Depot</option>
+                                <option value="Dar Central Terminal">Dar Central Terminal</option>
+                                <option value="Tanga Port Area">Tanga Port Area</option>
+                                <option value="Dodoma Solar Project">Dodoma Solar Project</option>
+                            </select>
+                        </div>
+
+                        <!-- Step 1: Initial Risk -->
+                        <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-3">
+                            <div class="font-bold text-brand-400 uppercase tracking-wider text-[10px]">1. Initial Uncontrolled Risk</div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-slate-400 mb-1">Likelihood (1-5)</label>
+                                    <select id="calcInitL" onchange="recalculateRisk()" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-white">
+                                        <option value="1">1 - Rare</option>
+                                        <option value="2">2 - Unlikely</option>
+                                        <option value="3" selected>3 - Possible</option>
+                                        <option value="4">4 - Likely</option>
+                                        <option value="5">5 - Almost Certain</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-slate-400 mb-1">Severity (1-5)</label>
+                                    <select id="calcInitS" onchange="recalculateRisk()" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-white">
+                                        <option value="1">1 - Insignificant</option>
+                                        <option value="2">2 - Minor</option>
+                                        <option value="3">3 - Moderate</option>
+                                        <option value="4" selected>4 - Major</option>
+                                        <option value="5">5 - Catastrophic</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center text-xs pt-1">
+                                <span class="text-slate-300 font-medium">Initial Score:</span>
+                                <span id="calcInitScoreBadge" class="px-2.5 py-0.5 rounded font-bold font-mono text-slate-950 bg-amber-500">12 (HIGH)</span>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Controls Selection -->
+                        <div>
+                            <label class="block text-slate-300 mb-1 font-medium">Applied Hierarchy of Control</label>
+                            <select id="calcControlType" onchange="recalculateRisk()" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-brand-500">
+                                <option value="Elimination">1. Elimination (Remove Hazard Completely)</option>
+                                <option value="Substitution">2. Substitution (Replace with Safer Alternative)</option>
+                                <option value="Engineering" selected>3. Engineering Controls (Isolate Workers from Hazard)</option>
+                                <option value="Administrative">4. Administrative Controls (Change Work Procedures)</option>
+                                <option value="PPE">5. PPE (Protect Worker with Personal Equipment)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-slate-300 mb-1 font-medium">Mitigation Control Description</label>
+                            <textarea id="calcControlDesc" rows="2" required placeholder="Specify exact safety interlocks, guard rails, or procedures..." class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-brand-500"></textarea>
+                        </div>
+
+                        <!-- Step 3: Residual Risk -->
+                        <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-3">
+                            <div class="font-bold text-brand-400 uppercase tracking-wider text-[10px]">2. Residual Risk After Controls</div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-slate-400 mb-1">Residual Likelihood</label>
+                                    <select id="calcResL" onchange="recalculateRisk()" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-white">
+                                        <option value="1" selected>1 - Rare</option>
+                                        <option value="2">2 - Unlikely</option>
+                                        <option value="3">3 - Possible</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-slate-400 mb-1">Residual Severity</label>
+                                    <select id="calcResS" onchange="recalculateRisk()" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-white">
+                                        <option value="1">1 - Insignificant</option>
+                                        <option value="2" selected>2 - Minor</option>
+                                        <option value="3">3 - Moderate</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center text-xs pt-1">
+                                <span class="text-slate-300 font-medium">Residual Score:</span>
+                                <span id="calcResScoreBadge" class="px-2.5 py-0.5 rounded font-bold font-mono text-slate-950 bg-emerald-500">2 (LOW)</span>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="w-full py-2.5 bg-brand-500 hover:bg-brand-400 text-slate-950 font-bold rounded-lg transition shadow-lg shadow-brand-950/40 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-floppy-disk"></i> Save to Baseline Risk Register
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Register Display & Print Report (7 Cols) -->
+                <div class="lg:col-span-7 glass-card rounded-2xl p-6 border border-slate-800 space-y-4">
+                    <div class="flex flex-wrap justify-between items-center gap-3 border-b border-slate-800 pb-3">
+                        <div>
+                            <h3 class="text-base font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-book-bookmark text-brand-400"></i>
+                                Baseline Risk Register & Controls Library
+                            </h3>
+                            <p class="text-xs text-slate-400">Centralized hazard evaluations for ISO 45001 & statutory compliance</p>
+                        </div>
+                        <button onclick="window.print()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs text-brand-400 font-semibold rounded-lg border border-slate-700 transition flex items-center gap-1.5 no-print">
+                            <i class="fa-solid fa-print"></i> Print PDF Report
+                        </button>
+                    </div>
+
+                    <div id="riskRegisterList" class="space-y-3 max-h-[620px] overflow-y-auto custom-scrollbar pr-1">
+                        <!-- Injected by JS -->
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ================= VIEW 4: STATUTORY AUDIT CHECKLISTS ================= -->
+        <div id="view-audits" class="tab-view hidden space-y-6">
+            <div class="glass-card rounded-2xl p-6 border border-slate-800 space-y-6">
+                
+                <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                    <div>
+                        <h3 class="text-base font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-clipboard-check text-brand-400"></i>
+                            Statutory & ISO Compliance Audit Checklists
+                        </h3>
+                        <p class="text-xs text-slate-400">Self-assessment audits aligned with OSHA (Tanzania), NEMC, and ISO 45001/14001</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span id="auditProgressText" class="text-xs font-mono font-bold text-brand-400 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-lg">
+                            Score: 0 / 0 Completed
+                        </span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-slate-800 pb-4">
+                    <button onclick="filterAuditCategory('OSHA')" id="auditCatOSHA" class="audit-cat-btn p-3 rounded-xl bg-brand-600 text-white font-bold text-xs flex items-center justify-between">
+                        <span><i class="fa-solid fa-hard-hat mr-2"></i>OSHA Workplace Safety</span>
+                        <span class="text-[10px] bg-slate-950/40 px-2 py-0.5 rounded">ISO 45001</span>
+                    </button>
+                    <button onclick="filterAuditCategory('NEMC')" id="auditCatNEMC" class="audit-cat-btn p-3 rounded-xl bg-slate-900 text-slate-400 font-bold text-xs flex items-center justify-between hover:text-white">
+                        <span><i class="fa-solid fa-leaf mr-2"></i>NEMC Environmental Standard</span>
+                        <span class="text-[10px] bg-slate-950/40 px-2 py-0.5 rounded">ISO 14001</span>
+                    </button>
+                    <button onclick="filterAuditCategory('CLIMATE')" id="auditCatCLIMATE" class="audit-cat-btn p-3 rounded-xl bg-slate-900 text-slate-400 font-bold text-xs flex items-center justify-between hover:text-white">
+                        <span><i class="fa-solid fa-sun-plant-wilt mr-2"></i>Thermal Stress & Climate Risk</span>
+                        <span class="text-[10px] bg-slate-950/40 px-2 py-0.5 rounded">GCAN Specific</span>
+                    </button>
+                </div>
+
+                <!-- Audit Items List -->
+                <div id="auditChecklistContainer" class="space-y-3">
+                    <!-- Injected by JS -->
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ================= VIEW 5: LIVE ENVIRONMENTAL TELEMETRY ================= -->
+        <div id="view-telemetry" class="tab-view hidden space-y-6">
+            
+            <div class="p-4 rounded-2xl bg-gradient-to-r from-brand-950 via-slate-900 to-amber-950 border border-brand-500/40 flex flex-wrap justify-between items-center gap-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-brand-500/20 text-brand-400 border border-brand-500/30 flex items-center justify-center text-xl shrink-0">
+                        <i class="fa-solid fa-tower-broadcast"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-white">LIVE FIELD SENSOR TELEMETRY: Coastal & Mainland Hubs</h3>
+                        <p class="text-xs text-slate-300">WBGT Heat Index, Particulate Dust (PM2.5), Noise (dB), and Water Effluent pH</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-brand-400 animate-ping"></span>
+                    <span class="text-xs font-mono font-bold text-brand-400">ALL SENSORS LIVE</span>
+                </div>
+            </div>
+
+            <!-- Sensor Cards Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="glass-card p-4 rounded-2xl border border-slate-800">
+                    <div class="flex justify-between items-start text-xs text-slate-400 mb-2">
+                        <span>WBGT Thermal Index</span>
+                        <i class="fa-solid fa-temperature-high text-amber-400"></i>
+                    </div>
+                    <div class="text-3xl font-extrabold text-amber-400">32.8 °C</div>
+                    <div class="text-[11px] text-amber-300 mt-1 font-semibold flex items-center gap-1">
+                        <i class="fa-solid fa-circle-exclamation"></i> Moderate Alert • 45m Work / 15m Rest
+                    </div>
+                    <div class="w-full bg-slate-800 h-2 rounded-full mt-3 overflow-hidden">
+                        <div class="bg-amber-400 h-full rounded-full" style="width: 78%"></div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-4 rounded-2xl border border-slate-800">
+                    <div class="flex justify-between items-start text-xs text-slate-400 mb-2">
+                        <span>Air Quality (Dust PM2.5)</span>
+                        <i class="fa-solid fa-wind text-brand-400"></i>
+                    </div>
+                    <div class="text-3xl font-extrabold text-brand-400">12.4 <span class="text-xs text-slate-400">µg/m³</span></div>
+                    <div class="text-[11px] text-brand-300 mt-1 font-semibold flex items-center gap-1">
+                        <i class="fa-solid fa-circle-check"></i> Clean Air Level
+                    </div>
+                    <div class="w-full bg-slate-800 h-2 rounded-full mt-3 overflow-hidden">
+                        <div class="bg-brand-400 h-full rounded-full" style="width: 25%"></div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-4 rounded-2xl border border-slate-800">
+                    <div class="flex justify-between items-start text-xs text-slate-400 mb-2">
+                        <span>Boundary Noise Level</span>
+                        <i class="fa-solid fa-volume-high text-amber-400"></i>
+                    </div>
+                    <div class="text-3xl font-extrabold text-amber-400">81.2 <span class="text-xs text-slate-400">dB</span></div>
+                    <div class="text-[11px] text-amber-300 mt-1 font-semibold flex items-center gap-1">
+                        <i class="fa-solid fa-ear-deaf"></i> Mandatory Hearing Protection Zone
+                    </div>
+                    <div class="w-full bg-slate-800 h-2 rounded-full mt-3 overflow-hidden">
+                        <div class="bg-amber-400 h-full rounded-full" style="width: 81%"></div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-4 rounded-2xl border border-slate-800">
+                    <div class="flex justify-between items-start text-xs text-slate-400 mb-2">
+                        <span>Effluent Runoff pH</span>
+                        <i class="fa-solid fa-droplet text-blue-400"></i>
+                    </div>
+                    <div class="text-3xl font-extrabold text-blue-400">7.1 pH</div>
+                    <div class="text-[11px] text-blue-300 mt-1 font-semibold flex items-center gap-1">
+                        <i class="fa-solid fa-circle-check"></i> Neutral Allowed Range (6.5 - 8.5)
+                    </div>
+                    <div class="w-full bg-slate-800 h-2 rounded-full mt-3 overflow-hidden">
+                        <div class="bg-blue-400 h-full rounded-full" style="width: 52%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Telemetry Charts -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="glass-card rounded-2xl p-5 border border-slate-800">
+                    <h4 class="text-sm font-bold text-white mb-1 flex items-center gap-2">
+                        <i class="fa-solid fa-sun-plant-wilt text-amber-400"></i>
+                        24-Hour WBGT Thermal Profile
+                    </h4>
+                    <p class="text-xs text-slate-400 mb-4">Real-time heat stress telemetry triggering automated rest hydration cycles</p>
+                    <div class="h-60 w-full">
+                        <canvas id="telemetryHeatChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="glass-card rounded-2xl p-5 border border-slate-800">
+                    <h4 class="text-sm font-bold text-white mb-1 flex items-center gap-2">
+                        <i class="fa-solid fa-smog text-brand-400"></i>
+                        Acoustic Noise (dB) vs Dust Particulates
+                    </h4>
+                    <p class="text-xs text-slate-400 mb-4">Crusher plant and transport corridor environmental sensors</p>
+                    <div class="h-60 w-full">
+                        <canvas id="telemetryNoiseChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- MODAL 1: NEW HAZARD REPORT FORM -->
+    <div id="newIncidentModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-card border border-slate-800 rounded-2xl max-w-2xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-triangle-exclamation text-brand-400"></i> Log Field Hazard / Incident Report
+                </h3>
+                <button onclick="closeModal('newIncidentModal')" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form id="incidentForm" onsubmit="handleIncidentSubmit(event)" class="space-y-4 text-xs">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-slate-300 mb-1 font-medium">Incident Title</label>
+                        <input type="text" id="incTitle" required placeholder="e.g. WBGT Heat Index Exceeded on Concrete Deck" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-brand-500">
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 mb-1 font-medium">Site / Operation Area</label>
+                        <select id="incSite" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-brand-500">
+                            <option value="Mtwara Coastal Facility">Mtwara Coastal Facility</option>
+                            <option value="Kimara Logistics Depot">Kimara Logistics Depot</option>
+                            <option value="Dar Central Terminal">Dar Central Terminal</option>
+                            <option value="Tanga Port Area">Tanga Port Area</option>
+                            <option value="Dodoma Solar Project">Dodoma Solar Project</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-slate-300 mb-1 font-medium">Reporter Name</label>
+                        <input type="text" id="incReporter" required placeholder="Eng. J. Simba" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-brand-500">
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 mb-1 font-medium">Category</label>
+                        <select id="incCategory" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-brand-500">
+                            <option value="Thermal Stress">Thermal Stress / WBGT</option>
+                            <option value="Chemical Safety">Chemical & Waste Safety</option>
+                            <option value="Dust / Air Emissions">Dust & Air Emissions</option>
+                            <option value="Work at Height">Work at Height / Scaffolding</option>
+                            <option value="Electrical Safety">Electrical Safety</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 mb-1 font-medium">Severity Level</label>
+                        <select id="incSeverity" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-brand-500">
+                            <option value="Low">Low - Minor</option>
+                            <option value="Medium">Medium - Moderate</option>
+                            <option value="High">High - Serious Risk</option>
+                            <option value="Critical">Critical - Stop Work Order</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-slate-300 mb-1 font-medium">Root Cause Analysis (RCA)</label>
+                    <textarea id="incRootCause" rows="2" required placeholder="Detail underlying failure causes (e.g. missing pre-shift inspection, extreme weather)..." class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-brand-500"></textarea>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-slate-300 mb-1 font-medium">Immediate Corrective Action (ICA)</label>
+                        <textarea id="incICA" rows="2" required placeholder="Immediate containment actions taken on site..." class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-brand-500"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 mb-1 font-medium">Preventative Action (CAPA)</label>
+                        <textarea id="incCAPA" rows="2" required placeholder="Systemic controls implemented to prevent recurrence..." class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-brand-500"></textarea>
+                    </div>
+                </div>
+
+                <!-- Attachment Area -->
+                <div>
+                    <label class="block text-slate-300 mb-1 font-medium">Photo Evidence Attachment</label>
+                    <div class="border-2 border-dashed border-slate-800 rounded-xl p-4 text-center hover:border-brand-500/50 transition cursor-pointer relative" onclick="document.getElementById('incPhotoInput').click()">
+                        <i class="fa-solid fa-cloud-arrow-up text-xl text-brand-400 mb-1"></i>
+                        <p class="text-[11px] text-slate-400">Click to upload photo evidence image</p>
+                        <input type="file" id="incPhotoInput" accept="image/*" class="hidden" onchange="previewImage(event)">
+                        <div id="photoPreviewContainer" class="mt-2 hidden">
+                            <img id="photoPreviewImg" src="" class="max-h-32 mx-auto rounded-lg border border-slate-700">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-3 border-t border-slate-800">
+                    <button type="button" onclick="closeModal('newIncidentModal')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg">Cancel</button>
+                    <button type="submit" class="px-6 py-2 bg-brand-500 hover:bg-brand-400 text-slate-950 font-bold rounded-lg transition shadow-lg shadow-brand-950/40">Submit Report</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2: INCIDENT DETAIL VIEW -->
+    <div id="detailModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-card border border-slate-800 rounded-2xl max-w-xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <div>
+                    <span id="detRefId" class="text-xs font-mono font-bold text-brand-400">REF-101</span>
+                    <h3 id="detTitle" class="text-base font-bold text-white">Incident Title</h3>
+                </div>
+                <button onclick="closeModal('detailModal')" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div class="grid grid-cols-2 gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <div><span class="text-slate-400">Facility:</span> <div id="detSite" class="font-bold text-white">Site</div></div>
+                    <div><span class="text-slate-400">Reporter:</span> <div id="detReporter" class="font-bold text-white">Name</div></div>
+                    <div><span class="text-slate-400">Category:</span> <div id="detCategory" class="font-bold text-brand-400">PPE</div></div>
+                    <div><span class="text-slate-400">Severity:</span> <div id="detSeverity" class="font-bold text-amber-400">Medium</div></div>
+                </div>
+
+                <div>
+                    <span class="text-slate-400 font-medium">Root Cause Analysis (RCA):</span>
+                    <p id="detRCA" class="text-slate-200 mt-1 bg-slate-900 p-2.5 rounded-lg border border-slate-800"></p>
+                </div>
+
+                <div>
+                    <span class="text-slate-400 font-medium">Immediate Corrective Action (ICA):</span>
+                    <p id="detICA" class="text-brand-300 mt-1 bg-slate-900 p-2.5 rounded-lg border border-slate-800"></p>
+                </div>
+
+                <div>
+                    <span class="text-slate-400 font-medium">Preventative Action (CAPA):</span>
+                    <p id="detCAPA" class="text-slate-300 mt-1 bg-slate-900 p-2.5 rounded-lg border border-slate-800"></p>
+                </div>
+
+                <div id="detImageWrapper" class="hidden">
+                    <span class="text-slate-400 font-medium">Photo Evidence:</span>
+                    <img id="detImage" src="" class="mt-2 rounded-xl max-h-48 w-full object-cover border border-slate-700">
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-2 border-t border-slate-800">
+                <button onclick="closeModal('detailModal')" class="px-4 py-2 bg-slate-800 text-slate-300 font-medium rounded-lg">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // SEED DATA
+        const seedIncidents = [
+            {
+                id: "INC-2026-101",
+                title: "Midday WBGT Thermal Exceedance in Zone B",
+                site: "Mtwara Coastal Facility",
+                reporter: "Eng. M. Hassan",
+                category: "Thermal Stress",
+                severity: "High",
+                status: "Open",
+                date: "2026-10-10",
+                rootCause: "Unprecedented high humidity during afternoon pours combined with lack of misting fan shade tents.",
+                ica: "Halted work for 30 minutes; issued electrolyte rehydration packs.",
+                capa: "Constructed permanent mobile shaded hydration stations across coastal sites.",
+                image: null,
+                l: 4, s: 4
+            },
+            {
+                id: "INC-2026-102",
+                title: "Unsecured Scaffolding Platform Toe-Board",
+                site: "Kimara Logistics Depot",
+                reporter: "A. Mohamed",
+                category: "Work at Height",
+                severity: "Medium",
+                status: "In Progress",
+                date: "2026-10-09",
+                rootCause: "Subcontractor removed toe-boards to move material without re-attaching safety locks.",
+                ica: "Issued stop-work order until scaffold re-certified by qualified inspector.",
+                capa: "Enforced daily pre-climb scaffold tags signed by site safety leads.",
+                image: null,
+                l: 3, s: 3
+            },
+            {
+                id: "INC-2026-103",
+                title: "Minor Hydraulic Oil Seepage on Bund Tray",
+                site: "Dar Central Terminal",
+                reporter: "J. K. Simba",
+                category: "Chemical Safety",
+                severity: "Low",
+                status: "Closed",
+                date: "2026-10-08",
+                rootCause: "Vibration loosened hydraulic hose fitting on stationary generator.",
+                ica: "Applied spill kit absorbents; retightened fitting.",
+                capa: "Added hose fitting torque checks to monthly preventative maintenance schedule.",
+                image: null,
+                l: 2, s: 2
+            }
+        ];
+
+        const seedRiskRecords = [
+            {
+                id: "RM-01",
+                hazard: "High Voltage Electrical Panel Maintenance",
+                site: "Dodoma Solar Project",
+                initL: 4, initS: 5, initScore: 20,
+                controlType: "Engineering",
+                controlDesc: "Lockout/Tagout (LOTO) key interlocks and insulated safety barriers.",
+                resL: 1, resS: 3, resScore: 3
+            },
+            {
+                id: "RM-02",
+                hazard: "Deep Trenching Excavation During Monsoon Rains",
+                site: "Mtwara Coastal Facility",
+                initL: 4, initS: 4, initScore: 16,
+                controlType: "Engineering",
+                controlDesc: "Hydraulic shoring boxes and 45-degree bench sloping.",
+                resL: 1, resS: 2, resScore: 2
+            }
+        ];
+
+        const auditItems = [
+            { id: 1, cat: "OSHA", question: "Are all active scaffolding platforms fitted with double guardrails and toe-boards?", status: "pass" },
+            { id: 2, cat: "OSHA", question: "Is mandatory hearing protection enforced in designated noise zones (>85 dB)?", status: "pass" },
+            { id: 3, cat: "OSHA", question: "Are emergency eye-wash stations tested weekly and unobstructed?", status: "fail" },
+            { id: 4, cat: "NEMC", question: "Are chemical storage areas equipped with secondary spill bunds (110% capacity)?", status: "pass" },
+            { id: 5, cat: "NEMC", question: "Is site storm runoff water tested for pH levels prior to off-site discharge?", status: "pass" },
+            { id: 6, cat: "CLIMATE", question: "Are ambient WBGT thermal stress levels logged hourly during summer shifts?", status: "pass" },
+            { id: 7, cat: "CLIMATE", question: "Is drinking water stored in shaded containers at maximum 100m intervals?", status: "pass" }
+        ];
+
+        // GLOBAL APP STATE
+        let incidents = [];
+        let riskRecords = [];
+        let activeMatrixFilterScore = null;
+        let activeAuditCat = 'OSHA';
+        let uploadedImageData = null;
+        let trendChart, categoryChart, heatChart, noiseChart;
+
+        // INITIALIZATION
+        document.addEventListener("DOMContentLoaded", () => {
+            loadState();
+            renderAll();
+            initCharts();
+        });
+
+        function loadState() {
+            const savedInc = localStorage.getItem("gcan_v3_incidents");
+            incidents = savedInc ? JSON.parse(savedInc) : [...seedIncidents];
+
+            const savedRisk = localStorage.getItem("gcan_v3_risk");
+            riskRecords = savedRisk ? JSON.parse(savedRisk) : [...seedRiskRecords];
+        }
+
+        function saveState() {
+            localStorage.setItem("gcan_v3_incidents", JSON.stringify(incidents));
+            localStorage.setItem("gcan_v3_risk", JSON.stringify(riskRecords));
+        }
+
+        function renderAll() {
+            renderKPIs();
+            renderMatrixGrid();
+            renderRecentTable();
+            renderIncidentTable();
+            renderRiskRegister();
+            renderAuditList();
+        }
+
+        // NAVIGATION TABS
+        function switchTab(tabId) {
+            document.querySelectorAll(".tab-view").forEach(el => el.classList.add("hidden"));
+            document.getElementById(`view-${tabId}`).classList.remove("hidden");
+
+            document.querySelectorAll(".nav-tab").forEach(btn => {
+                btn.classList.remove("bg-brand-600", "text-white");
+                btn.classList.add("text-slate-400");
+            });
+
+            const activeBtn = document.getElementById(`nav-${tabId}`);
+            if (activeBtn) {
+                activeBtn.classList.add("bg-brand-600", "text-white");
+                activeBtn.classList.remove("text-slate-400");
+            }
+        }
+
+        // RENDER KPI SUMMARY
+        function renderKPIs() {
+            const openCount = incidents.filter(i => i.status !== "Closed").length;
+            document.getElementById("kpiOpenIncidents").innerText = openCount;
+
+            const total = incidents.length;
+            const closed = incidents.filter(i => i.status === "Closed").length;
+            const rate = total > 0 ? ((closed + (total - openCount) * 0.5) / total * 100).toFixed(1) : "98.5";
+            document.getElementById("kpiComplianceRate").innerText = `${rate}%`;
+        }
+
+        // 5x5 MATRIX GRID GENERATOR
+        function renderMatrixGrid() {
+            const grid = document.getElementById("dashboardMatrixGrid");
+            grid.innerHTML = "";
+
+            for (let l = 5; l >= 1; l--) {
+                for (let s = 1; s <= 5; s++) {
+                    const score = l * s;
+                    let bgColor = "bg-emerald-600/85 hover:bg-emerald-500 text-slate-950";
+                    if (score >= 5 && score <= 9) bgColor = "bg-amber-500/85 hover:bg-amber-400 text-slate-950";
+                    else if (score >= 10 && score <= 15) bgColor = "bg-orange-600/85 hover:bg-orange-500 text-white";
+                    else if (score >= 16) bgColor = "bg-rose-600/85 hover:bg-rose-500 text-white";
+
+                    const matchCount = incidents.filter(i => (i.l * i.s) === score).length;
+
+                    const cell = document.createElement("div");
+                    cell.className = `${bgColor} matrix-cell rounded-xl flex flex-col items-center justify-center p-1 cursor-pointer font-black text-xs relative border border-slate-950/20`;
+                    cell.innerHTML = `
+                        <span>${score}</span>
+                        ${matchCount > 0 ? `<span class="absolute -top-1.5 -right-1.5 bg-slate-950 text-brand-400 font-mono text-[9px] w-4 h-4 rounded-full flex items-center justify-center border border-brand-500/50">${matchCount}</span>` : ''}
+                    `;
+                    cell.onclick = () => filterByMatrixScore(score);
+                    grid.appendChild(cell);
+                }
+            }
+        }
+
+        function filterByMatrixScore(score) {
+            activeMatrixFilterScore = score;
+            switchTab('incidents');
+            filterIncidents();
+            showToast(`Filtered hazards matching Risk Score ${score}`);
+        }
+
+        function resetMatrixFilter() {
+            activeMatrixFilterScore = null;
+            renderAll();
+            showToast("Matrix score filter cleared");
+        }
+
+        // RENDER DASHBOARD RECENT TABLE
+        function renderRecentTable() {
+            const tbody = document.getElementById("dashboardRecentTable");
+            tbody.innerHTML = "";
+
+            incidents.slice(0, 4).forEach(item => {
+                const tr = document.createElement("tr");
+                tr.className = "hover:bg-slate-800/40 transition";
+
+                const score = item.l * item.s;
+                let scoreBadge = `<span class="px-2 py-0.5 rounded font-bold text-[10px] ${getScoreColorClass(score)}">${score} (${getScoreCategory(score)})</span>`;
+
+                tr.innerHTML = `
+                    <td class="p-3 font-mono text-brand-400 font-bold">${item.id}</td>
+                    <td class="p-3">
+                        <div class="font-bold text-white">${item.title}</div>
+                        <div class="text-[10px] text-slate-400">${item.site}</div>
+                    </td>
+                    <td class="p-3"><span class="px-2 py-0.5 bg-slate-950 border border-slate-800 rounded text-[10px]">${item.category}</span></td>
+                    <td class="p-3 text-slate-300">${item.reporter}</td>
+                    <td class="p-3">${scoreBadge}</td>
+                    <td class="p-3"><span class="font-semibold ${item.status === 'Closed' ? 'text-brand-400' : 'text-amber-400'}">${item.status}</span></td>
+                    <td class="p-3 text-right">
+                        <button onclick="viewDetail('${item.id}')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-brand-400 rounded text-[10px]">View</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // RENDER INCIDENT REGISTER
+        function renderIncidentTable(data = null) {
+            const tbody = document.getElementById("incidentLogTableBody");
+            tbody.innerHTML = "";
+
+            const list = data || incidents;
+
+            if (list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-500">No field hazard records match criteria.</td></tr>`;
+                return;
+            }
+
+            list.forEach(item => {
+                const tr = document.createElement("tr");
+                tr.className = "hover:bg-slate-800/40 transition";
+
+                const score = item.l * item.s;
+
+                tr.innerHTML = `
+                    <td class="p-3 font-mono text-brand-400 font-bold">${item.id}</td>
+                    <td class="p-3">
+                        <div class="font-bold text-white">${item.title}</div>
+                        <div class="text-[10px] text-slate-400"><i class="fa-solid fa-location-dot mr-1"></i>${item.site}</div>
+                    </td>
+                    <td class="p-3">
+                        <div class="text-slate-200">${item.reporter}</div>
+                        <div class="text-[10px] text-slate-500">${item.date}</div>
+                    </td>
+                    <td class="p-3"><span class="px-2 py-0.5 bg-slate-950 border border-slate-800 rounded text-[10px]">${item.category}</span></td>
+                    <td class="p-3"><span class="px-2 py-0.5 rounded font-bold text-[10px] ${getScoreColorClass(score)}">${score}</span></td>
+                    <td class="p-3">
+                        <select onchange="updateIncidentStatus('${item.id}', this.value)" class="bg-slate-950 border border-slate-800 text-xs rounded px-2 py-1 text-slate-200 font-semibold">
+                            <option value="Open" ${item.status === 'Open' ? 'selected' : ''}>Open</option>
+                            <option value="In Progress" ${item.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
+                            <option value="Closed" ${item.status === 'Closed' ? 'selected' : ''}>Closed</option>
+                        </select>
+                    </td>
+                    <td class="p-3 text-right">
+                        <button onclick="viewDetail('${item.id}')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-brand-400 rounded text-[10px]">Details</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function filterIncidents() {
+            const query = document.getElementById("incidentSearchInput").value.toLowerCase();
+            const category = document.getElementById("incidentCategoryFilter").value;
+            const status = document.getElementById("incidentStatusFilter").value;
+
+            const filtered = incidents.filter(item => {
+                const matchesQuery = item.title.toLowerCase().includes(query) || item.site.toLowerCase().includes(query) || item.reporter.toLowerCase().includes(query);
+                const matchesCat = category === "" || item.category === category;
+                const matchesStatus = status === "" || item.status === status;
+                const matchesMatrix = activeMatrixFilterScore === null || (item.l * item.s) === activeMatrixFilterScore;
+
+                return matchesQuery && matchesCat && matchesStatus && matchesMatrix;
+            });
+
+            renderIncidentTable(filtered);
+        }
+
+        function resetIncidentFilters() {
+            document.getElementById("incidentSearchInput").value = "";
+            document.getElementById("incidentCategoryFilter").value = "";
+            document.getElementById("incidentStatusFilter").value = "";
+            activeMatrixFilterScore = null;
+            renderIncidentTable();
+        }
+
+        function updateIncidentStatus(id, newStatus) {
+            const item = incidents.find(i => i.id === id);
+            if (item) {
+                item.status = newStatus;
+                saveState();
+                renderKPIs();
+                showToast(`Incident ${id} status set to ${newStatus}`);
+            }
+        }
+
+        function previewImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    uploadedImageData = e.target.result;
+                    document.getElementById("photoPreviewImg").src = uploadedImageData;
+                    document.getElementById("photoPreviewContainer").classList.remove("hidden");
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function handleIncidentSubmit(e) {
+            e.preventDefault();
+
+            const title = document.getElementById("incTitle").value;
+            const site = document.getElementById("incSite").value;
+            const reporter = document.getElementById("incReporter").value;
+            const category = document.getElementById("incCategory").value;
+            const severity = document.getElementById("incSeverity").value;
+            const rootCause = document.getElementById("incRootCause").value;
+            const ica = document.getElementById("incICA").value;
+            const capa = document.getElementById("incCAPA").value;
+
+            const lVal = severity === 'Critical' ? 5 : (severity === 'High' ? 4 : 3);
+            const sVal = severity === 'Critical' ? 5 : (severity === 'High' ? 4 : 3);
+
+            const newObj = {
+                id: `INC-2026-${100 + incidents.length + 1}`,
+                title, site, reporter, category, severity,
+                status: "Open",
+                date: new Date().toISOString().split('T')[0],
+                rootCause, ica, capa,
+                image: uploadedImageData,
+                l: lVal, s: sVal
+            };
+
+            incidents.unshift(newObj);
+            saveState();
+            renderAll();
+            closeModal('newIncidentModal');
+            document.getElementById("incidentForm").reset();
+            uploadedImageData = null;
+            document.getElementById("photoPreviewContainer").classList.add("hidden");
+            showToast("New hazard report logged successfully!");
+        }
+
+        function viewDetail(id) {
+            const item = incidents.find(i => i.id === id);
+            if (!item) return;
+
+            document.getElementById("detRefId").innerText = item.id;
+            document.getElementById("detTitle").innerText = item.title;
+            document.getElementById("detSite").innerText = item.site;
+            document.getElementById("detReporter").innerText = item.reporter;
+            document.getElementById("detCategory").innerText = item.category;
+            document.getElementById("detSeverity").innerText = item.severity;
+            document.getElementById("detRCA").innerText = item.rootCause;
+            document.getElementById("detICA").innerText = item.ica;
+            document.getElementById("detCAPA").innerText = item.capa;
+
+            const imgWrapper = document.getElementById("detImageWrapper");
+            if (item.image) {
+                document.getElementById("detImage").src = item.image;
+                imgWrapper.classList.remove("hidden");
+            } else {
+                imgWrapper.classList.add("hidden");
+            }
+
+            openModal('detailModal');
+        }
+
+        // HIERARCHY OF CONTROLS CALCULATOR
+        function recalculateRisk() {
+            const initL = parseInt(document.getElementById("calcInitL").value);
+            const initS = parseInt(document.getElementById("calcInitS").value);
+            const initScore = initL * initS;
+
+            const initBadge = document.getElementById("calcInitScoreBadge");
+            initBadge.innerText = `${initScore} (${getScoreCategory(initScore)})`;
+            initBadge.className = `px-2.5 py-0.5 rounded font-bold font-mono text-slate-950 ${getScoreColorClass(initScore)}`;
+
+            const resL = parseInt(document.getElementById("calcResL").value);
+            const resS = parseInt(document.getElementById("calcResS").value);
+            const resScore = resL * resS;
+
+            const resBadge = document.getElementById("calcResScoreBadge");
+            resBadge.innerText = `${resScore} (${getScoreCategory(resScore)})`;
+            resBadge.className = `px-2.5 py-0.5 rounded font-bold font-mono text-slate-950 ${getScoreColorClass(resScore)}`;
+        }
+
+        function handleRiskCalcSubmit(e) {
+            e.preventDefault();
+
+            const hazard = document.getElementById("calcHazardName").value;
+            const site = document.getElementById("calcSite").value;
+            const initL = parseInt(document.getElementById("calcInitL").value);
+            const initS = parseInt(document.getElementById("calcInitS").value);
+            const controlType = document.getElementById("calcControlType").value;
+            const controlDesc = document.getElementById("calcControlDesc").value;
+            const resL = parseInt(document.getElementById("calcResL").value);
+            const resS = parseInt(document.getElementById("calcResS").value);
+
+            const newRec = {
+                id: `RM-0${riskRecords.length + 1}`,
+                hazard, site, initL, initS,
+                initScore: initL * initS,
+                controlType, controlDesc, resL, resS,
+                resScore: resL * resS
+            };
+
+            riskRecords.unshift(newRec);
+            saveState();
+            renderRiskRegister();
+            document.getElementById("riskCalcForm").reset();
+            recalculateRisk();
+            showToast("Risk assessment saved to baseline register");
+        }
+
+        function renderRiskRegister() {
+            const container = document.getElementById("riskRegisterList");
+            container.innerHTML = "";
+
+            riskRecords.forEach(item => {
+                const card = document.createElement("div");
+                card.className = "glass-card p-4 rounded-xl border border-slate-800 space-y-3 text-xs";
+                card.innerHTML = `
+                    <div class="flex justify-between items-start gap-2">
+                        <div>
+                            <span class="font-mono text-brand-400 font-bold mr-2">${item.id}</span>
+                            <span class="font-bold text-white text-sm">${item.hazard}</span>
+                            <div class="text-[10px] text-slate-400"><i class="fa-solid fa-building mr-1"></i>${item.site}</div>
+                        </div>
+                        <span class="px-2 py-0.5 rounded font-bold text-slate-950 text-[10px] ${getScoreColorClass(item.initScore)}">Initial: ${item.initScore}</span>
+                    </div>
+                    <div class="bg-slate-950 p-2.5 rounded-lg border border-slate-800 space-y-1">
+                        <div class="flex justify-between items-center text-[11px]">
+                            <span class="text-brand-400 font-bold"><i class="fa-solid fa-layer-group mr-1"></i>${item.controlType} Control</span>
+                            <span class="font-bold text-slate-950 px-2 py-0.5 rounded ${getScoreColorClass(item.resScore)} text-[10px]">Residual: ${item.resScore}</span>
+                        </div>
+                        <p class="text-slate-300 text-[11px]">${item.controlDesc}</p>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // AUDIT CHECKLISTS
+        function filterAuditCategory(cat) {
+            activeAuditCat = cat;
+            document.querySelectorAll(".audit-cat-btn").forEach(btn => {
+                btn.classList.remove("bg-brand-600", "text-white");
+                btn.classList.add("bg-slate-900", "text-slate-400");
+            });
+            document.getElementById(`auditCat${cat}`).classList.add("bg-brand-600", "text-white");
+            renderAuditList();
+        }
+
+        function renderAuditList() {
+            const container = document.getElementById("auditChecklistContainer");
+            container.innerHTML = "";
+
+            const filtered = auditItems.filter(i => i.cat === activeAuditCat);
+
+            filtered.forEach(item => {
+                const card = document.createElement("div");
+                card.className = "glass-card p-4 rounded-xl border border-slate-800 flex flex-wrap justify-between items-center gap-3 text-xs";
+                card.innerHTML = `
+                    <div class="flex items-center gap-3 max-w-xl">
+                        <span class="w-6 h-6 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center font-mono font-bold text-brand-400 shrink-0">${item.id}</span>
+                        <span class="text-white font-medium">${item.question}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="setAuditStatus(${item.id}, 'pass')" class="px-3 py-1.5 rounded-lg font-bold text-[11px] ${item.status === 'pass' ? 'bg-brand-500 text-slate-950 shadow-md shadow-brand-950/40' : 'bg-slate-900 text-slate-400 hover:text-white'}">
+                            <i class="fa-solid fa-check mr-1"></i> Pass
+                        </button>
+                        <button onclick="setAuditStatus(${item.id}, 'fail')" class="px-3 py-1.5 rounded-lg font-bold text-[11px] ${item.status === 'fail' ? 'bg-rose-500 text-white shadow-md shadow-rose-950/40' : 'bg-slate-900 text-slate-400 hover:text-white'}">
+                            <i class="fa-solid fa-xmark mr-1"></i> Fail
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            const total = auditItems.length;
+            const passed = auditItems.filter(i => i.status === 'pass').length;
+            document.getElementById("auditProgressText").innerText = `Audit Score: ${passed} / ${total} Passed`;
+        }
+
+        function setAuditStatus(id, status) {
+            const item = auditItems.find(i => i.id === id);
+            if (item) {
+                item.status = status;
+                renderAuditList();
+                showToast(`Audit question #${id} updated`);
+            }
+        }
+
+        // CSV EXPORTER
+        function exportToCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,ID,Title,Site,Reporter,Category,Severity,Status,Date\n";
+            incidents.forEach(i => {
+                csvContent += `"${i.id}","${i.title}","${i.site}","${i.reporter}","${i.category}","${i.severity}","${i.status}","${i.date}"\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `GCAN_HSE_Incidents_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast("Exported field logs to CSV format");
+        }
+
+        // HELPERS
+        function getScoreCategory(score) {
+            if (score >= 16) return "CRITICAL";
+            if (score >= 10) return "HIGH";
+            if (score >= 5) return "MEDIUM";
+            return "LOW";
+        }
+
+        function getScoreColorClass(score) {
+            if (score >= 16) return "bg-rose-500 text-white";
+            if (score >= 10) return "bg-orange-500 text-white";
+            if (score >= 5) return "bg-amber-500 text-slate-950";
+            return "bg-brand-500 text-slate-950";
+        }
+
+        function openModal(id) { document.getElementById(id).classList.remove("hidden"); }
+        function closeModal(id) { document.getElementById(id).classList.add("hidden"); }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const icon = document.getElementById("themeIcon");
+            if (html.classList.contains("dark")) {
+                html.classList.remove("dark");
+                html.classList.add("light");
+                icon.className = "fa-solid fa-sun text-amber-400";
+            } else {
+                html.classList.remove("light");
+                html.classList.add("dark");
+                icon.className = "fa-solid fa-moon text-slate-300";
+            }
+        }
+
+        function showToast(msg) {
+            const container = document.getElementById("toastContainer");
+            const toast = document.createElement("div");
+            toast.className = "bg-slate-900 border border-brand-500/50 text-brand-300 text-xs px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 pointer-events-auto transition-all transform duration-300";
+            toast.innerHTML = `<i class="fa-solid fa-circle-check text-brand-400"></i> ${msg}`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // CHARTS INITIALIZATION
+        function initCharts() {
+            const ctx1 = document.getElementById("dashboardTrendChart").getContext("2d");
+            trendChart = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: ['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'],
+                    datasets: [
+                        {
+                            label: 'Near Misses',
+                            data: [14, 19, 16, 24, 20, 15],
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            fill: true,
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Incidents Logged',
+                            data: [5, 7, 4, 6, 5, 3],
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'transparent',
+                            borderDash: [4, 4],
+                            tension: 0.3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#94a3b8', font: { size: 10 } } } },
+                    scales: {
+                        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } }
+                    }
+                }
+            });
+
+            const ctx2 = document.getElementById("dashboardCategoryChart").getContext("2d");
+            categoryChart = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Thermal Stress', 'Chemical Safety', 'Dust & Air', 'Work at Height', 'Electrical'],
+                    datasets: [{
+                        data: [25, 15, 20, 25, 15],
+                        backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'],
+                        borderColor: '#090d16',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'right', labels: { color: '#94a3b8', font: { size: 10 } } } },
+                    cutout: '65%'
+                }
+            });
+
+            const ctx3 = document.getElementById("telemetryHeatChart").getContext("2d");
+            heatChart = new Chart(ctx3, {
+                type: 'bar',
+                data: {
+                    labels: ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00'],
+                    datasets: [{
+                        label: 'WBGT Temp (°C)',
+                        data: [26, 29, 32, 36, 37, 34, 30],
+                        backgroundColor: ctx => ctx.raw >= 35 ? '#ef4444' : (ctx.raw >= 31 ? '#f59e0b' : '#10b981'),
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: '#94a3b8' } },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } }
+                    }
+                }
+            });
+
+            const ctx4 = document.getElementById("telemetryNoiseChart").getContext("2d");
+            noiseChart = new Chart(ctx4, {
+                type: 'line',
+                data: {
+                    labels: ['Shift Start', '09:00', '11:00', 'Peak Operation', '15:00', '17:00', 'Shift End'],
+                    datasets: [
+                        {
+                            label: 'Noise Level (dB)',
+                            data: [64, 76, 84, 91, 83, 75, 61],
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            fill: true,
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Dust PM2.5 (µg/m³)',
+                            data: [9, 12, 20, 35, 24, 16, 11],
+                            borderColor: '#10b981',
+                            backgroundColor: 'transparent',
+                            tension: 0.3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#94a3b8', font: { size: 10 } } } },
+                    scales: {
+                        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
